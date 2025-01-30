@@ -1,0 +1,138 @@
+.App {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding-top: 20px;
+  padding-bottom: 40px;
+  background-color: #333;
+}
+
+h1 {
+  color: #f5f5f5;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 700px;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.message-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f9f9f9;
+}
+
+.message-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.message-container::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+
+.user-message {
+  background-color: #4caf50;
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 15px 15px 0 15px;
+  color: #333333;
+  text-align: right;
+  align-self: flex-end;
+  max-width: calc(75% - 10px); /* Adjust to stay within the chat container */
+  min-width: fit-content; /* Shrinks for short text */
+  word-wrap: break-word;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.LLM-message {
+  background-color: #55aee2;
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 15px 15px 15px 0;
+  color: #333333;
+  text-align: left;
+  align-self: flex-start;
+  max-width: calc(75% - 10px); /* Adjust to stay within the chat container */
+  min-width: fit-content; /* Shrinks for short text */
+  word-wrap: break-word;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .chat-container {
+    height: 500px;
+    padding: 8px;
+  }
+
+  .user-message, .LLM-message {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+.input-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+input[type="text"] {
+  width: 65%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  width: 15%;
+  padding: 10px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.upload-label {
+  width: 10%;
+  padding: 8px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  text-align: center;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 14px;
+}
+
+.upload-label:hover {
+  background-color: #1976d2;
+}
+
+.file-upload {
+  display: none;
+}
