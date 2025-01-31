@@ -1,3 +1,4 @@
+# LLMcon.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
@@ -17,7 +18,6 @@ conversation_state = {
     "awaiting_answer": False,  # Whether the backend is waiting for an answer to the current question
     "conversation_history": [],  # List of messages in the conversation
     "language": "english",  # Default language
-    "translate_mode": False,  # Flag to control translation (True for Norwegian, False for English)
 }
 
 def send_to_llm(messages):
@@ -36,15 +36,32 @@ def send_to_llm(messages):
         return response.json()["choices"][0]["message"]["content"]
     return "Error communicating with LLM"
 
-def translate_to_norwegian(text):
-    messages = [{"role": "user", "content": f"Translate the following text into Norwegian and only norweigan. do not add extra english text explaining the translation: {text}"}]
+def translate_text(text, target_language):
+    """
+    Translates text into the specified target language using the LLM.
+    Only translates if the target language is not English.
+    Ensures the LLM only outputs the translated text without extra explanations.
+    """
+    if target_language.lower() == "english":
+        return text  # No translation needed for English
+
+    # Prompt the LLM to translate the text into the target language
+    messages = [{
+        "role": "user",
+        "content": f"Translate the following text into {target_language} and only the target language. Do not include any extra text or explanations. Only translate the text provided. Do not translate names, numerical values, or locations. Text: {text}"
+    }]
     return send_to_llm(messages)
 
 def translate_to_english(text):
     """
     Translates text into English using the LLM.
+    Only translates if the text is not already in English.
     """
-    messages = [{"role": "user", "content": f"Translate the following text into English. if there is not enough context to translate the message or it does not require translation such as being a name or a numerical value do not translate and just take the original answer and output. Do not add any extra text other than the original english questions with the corosponding answers in english: {text}"}]
+    # Prompt the LLM to translate the text into English
+    messages = [{
+        "role": "user",
+        "content": f"Translate the following text into English. If the text is already in English or does not require translation (e.g., names, numbers, locations), return the original text. DO NOT INCLUDE ANY EXTRA CONTEXT. Text: {text}"
+    }]
     return send_to_llm(messages)
 
 @app.route("/chat", methods=["POST"])
@@ -60,8 +77,14 @@ def chat():
 
     if conversation_state["in_question_mode"]:
         if conversation_state["awaiting_answer"]:
+            # Translate the user's answer back into English if necessary
+            if language.lower() != "english":
+                translated_answer = translate_to_english(user_message)
+            else:
+                translated_answer = user_message
+
             # Log the user's answer to the current question
-            conversation_state["answers"].append(user_message)
+            conversation_state["answers"].append(translated_answer)
             conversation_state["awaiting_answer"] = False  # Reset the flag
 
             # Add the user's answer to the conversation history
@@ -72,12 +95,7 @@ def chat():
                 # All questions answered, return the summary and switch back to normal chat mode
                 summary = "Here are the questions and answers:\n"
                 for i, (question, answer) in enumerate(zip(conversation_state["questions"], conversation_state["answers"])):
-                    # Translate the answer back into English if in translate mode
-                    if conversation_state["translate_mode"]:
-                        translated_answer = translate_to_english(answer)
-                        summary += f"{i + 1}. Q: {question}\n   A: {translated_answer}\n"
-                    else:
-                        summary += f"{i + 1}. Q: {question}\n   A: {answer}\n"
+                    summary += f"{i + 1}. Q: {question}\n   A: {answer}\n"
                 
                 # Reset question-answering mode
                 conversation_state["in_question_mode"] = False
@@ -135,9 +153,6 @@ def upload():
     language = request.headers.get("Language", "english")
     conversation_state["language"] = language
 
-    # Set the translate_mode flag based on the selected language
-    conversation_state["translate_mode"] = (language == "norwegian")
-
     # Reset conversation state for question-answering mode
     conversation_state["questions"] = file_content.splitlines()  # Split file content into questions
     conversation_state["current_question_index"] = 0
@@ -146,10 +161,10 @@ def upload():
     conversation_state["in_question_mode"] = True  # Enter question-answering mode
     conversation_state["awaiting_answer"] = False  # No answer expected yet
 
-    # Translate the questions into Norwegian if translate_mode is True
-    if conversation_state["translate_mode"]:
+    # Translate the questions into the specified language if not English
+    if language.lower() != "english":
         for i, question in enumerate(conversation_state["questions"]):
-            conversation_state["questions"][i] = translate_to_norwegian(question)
+            conversation_state["questions"][i] = translate_text(question, language)
 
     # Send the first question immediately after upload
     if conversation_state["questions"]:

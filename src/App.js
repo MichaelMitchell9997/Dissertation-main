@@ -1,3 +1,4 @@
+// App.js
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 
@@ -64,17 +65,17 @@ function App() {
 
       const data = await response.json();
       if (response.ok) {
-        setUploadStatus(`✅ File uploaded: ${file.name}`);
+        setUploadStatus(`File uploaded: ${file.name}`);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { text: `📂 Uploaded: ${file.name}`, type: "user" },
+          { text: `Uploaded: ${file.name}`, type: "user" },
           { text: data.reply, type: "llm" },
         ]);
       } else {
-        setUploadStatus(`❌ Upload failed: ${data.error}`);
+        setUploadStatus(`Upload failed: ${data.error}`);
       }
     } catch (error) {
-      setUploadStatus("❌ Error uploading file.");
+      setUploadStatus("Error uploading file.");
       console.error('Error uploading file:', error);
     }
   };
@@ -116,14 +117,13 @@ function App() {
             Upload
             <input type="file" className="file-upload" onChange={handleFileUpload} />
           </label>
-          <select
+          <input
+            type="text"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="language-select"
-          >
-            <option value="english">English</option>
-            <option value="norwegian">Norwegian</option>
-          </select>
+            placeholder="Enter language (e.g., French)"
+            className="language-input"
+          />
         </div>
 
         {/* Upload Status Feedback */}
