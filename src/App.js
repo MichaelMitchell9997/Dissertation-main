@@ -5,7 +5,8 @@ function App() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
-  const [uploadStatus, setUploadStatus] = useState(""); // Track upload status
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [language, setLanguage] = useState("english"); // Default language
 
   const handleSendMessage = async () => {
     if (message) {
@@ -18,7 +19,7 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ message: message }),
+          body: JSON.stringify({ message: message, language: language }),
         });
 
         if (response.ok) {
@@ -47,7 +48,7 @@ function App() {
       return;
     }
   
-    setUploadStatus("Uploading..."); // Show uploading status
+    setUploadStatus("Uploading...");
 
     const formData = new FormData();
     formData.append("file", file);
@@ -56,21 +57,24 @@ function App() {
       const response = await fetch("http://127.0.0.1:5000/upload", {
         method: "POST",
         body: formData,
+        headers: {
+          "Language": language, // Pass the selected language to the backend
+        },
       });
 
       const data = await response.json();
       if (response.ok) {
-        setUploadStatus(`File uploaded: ${file.name}`);
+        setUploadStatus(`✅ File uploaded: ${file.name}`);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { text: `Uploaded: ${file.name}`, type: "user" },
+          { text: `📂 Uploaded: ${file.name}`, type: "user" },
           { text: data.reply, type: "llm" },
         ]);
       } else {
-        setUploadStatus(`Upload failed: ${data.error}`);
+        setUploadStatus(`❌ Upload failed: ${data.error}`);
       }
     } catch (error) {
-      setUploadStatus("Error uploading file.");
+      setUploadStatus("❌ Error uploading file.");
       console.error('Error uploading file:', error);
     }
   };
@@ -112,6 +116,14 @@ function App() {
             Upload
             <input type="file" className="file-upload" onChange={handleFileUpload} />
           </label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="language-select"
+          >
+            <option value="english">English</option>
+            <option value="norwegian">Norwegian</option>
+          </select>
         </div>
 
         {/* Upload Status Feedback */}

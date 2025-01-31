@@ -16,6 +16,8 @@ conversation_state = {
     "in_question_mode": False,  # Whether the LLM is in question-answering mode
     "awaiting_answer": False,  # Whether the backend is waiting for an answer to the current question
     "conversation_history": [],  # List of messages in the conversation
+    "language": "english",  # Default language
+    "translate_mode": False,  # Flag to control translation (True for Norwegian, False for English)
 }
 
 def send_to_llm(messages):
@@ -34,12 +36,24 @@ def send_to_llm(messages):
         return response.json()["choices"][0]["message"]["content"]
     return "Error communicating with LLM"
 
+def translate_to_norwegian(text):
+    messages = [{"role": "user", "content": f"Translate the following text into Norwegian and only norweigan. do not add extra english text explaining the translation: {text}"}]
+    return send_to_llm(messages)
+
+def translate_to_english(text):
+    """
+    Translates text into English using the LLM.
+    """
+    messages = [{"role": "user", "content": f"Translate the following text into English. if there is not enough context to translate the message or it does not require translation such as being a name or a numerical value do not translate and just take the original answer and output. Do not add any extra text other than the original english questions with the corosponding answers in english: {text}"}]
+    return send_to_llm(messages)
+
 @app.route("/chat", methods=["POST"])
 def chat():
     global conversation_state
 
     data = request.json
     user_message = data.get("message", "")
+    language = data.get("language", "english")  # Get the selected language
 
     if not user_message and conversation_state["awaiting_answer"]:
         return jsonify({"error": "Message cannot be empty"}), 400
@@ -58,7 +72,12 @@ def chat():
                 # All questions answered, return the summary and switch back to normal chat mode
                 summary = "Here are the questions and answers:\n"
                 for i, (question, answer) in enumerate(zip(conversation_state["questions"], conversation_state["answers"])):
-                    summary += f"{i + 1}. Q: {question}\n   A: {answer}\n"
+                    # Translate the answer back into English if in translate mode
+                    if conversation_state["translate_mode"]:
+                        translated_answer = translate_to_english(answer)
+                        summary += f"{i + 1}. Q: {question}\n   A: {translated_answer}\n"
+                    else:
+                        summary += f"{i + 1}. Q: {question}\n   A: {answer}\n"
                 
                 # Reset question-answering mode
                 conversation_state["in_question_mode"] = False
@@ -112,6 +131,13 @@ def upload():
     file = request.files["file"]
     file_content = file.read().decode("utf-8")  # Read and decode file content
 
+    # Get the selected language from the request headers
+    language = request.headers.get("Language", "english")
+    conversation_state["language"] = language
+
+    # Set the translate_mode flag based on the selected language
+    conversation_state["translate_mode"] = (language == "norwegian")
+
     # Reset conversation state for question-answering mode
     conversation_state["questions"] = file_content.splitlines()  # Split file content into questions
     conversation_state["current_question_index"] = 0
@@ -119,6 +145,11 @@ def upload():
     conversation_state["file_processed"] = True
     conversation_state["in_question_mode"] = True  # Enter question-answering mode
     conversation_state["awaiting_answer"] = False  # No answer expected yet
+
+    # Translate the questions into Norwegian if translate_mode is True
+    if conversation_state["translate_mode"]:
+        for i, question in enumerate(conversation_state["questions"]):
+            conversation_state["questions"][i] = translate_to_norwegian(question)
 
     # Send the first question immediately after upload
     if conversation_state["questions"]:
