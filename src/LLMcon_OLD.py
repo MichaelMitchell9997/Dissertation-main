@@ -1,7 +1,9 @@
 # LLMcon.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import requests
+import os
+import uuid
 
 app = Flask(__name__)
 CORS(app)
@@ -60,9 +62,28 @@ def translate_to_english(text):
     # Prompt the LLM to translate the text into English
     messages = [{
         "role": "user",
-        "content": f"Translate the following text into English. If the text is already in English or does not require translation (e.g., names, numbers, locations), return the original text. DO NOT INCLUDE ANY EXTRA CONTEXT. Text: {text}"
+        "content": f"Translate the following text into English. If the text is already in English or does not require translation (e.g., names, numbers, locations), return the original text. Text: {text}"
     }]
     return send_to_llm(messages)
+
+def generate_qa_file(questions, answers):
+    """
+    Generates a text file with questions and answers.
+    Returns the path to the generated file.
+    """
+    # Create a unique filename
+    filename = f"qa_{uuid.uuid4().hex}.txt"
+    filepath = os.path.join("temp", filename)
+
+    # Ensure the temp directory exists
+    os.makedirs("temp", exist_ok=True)
+
+    # Write questions and answers to the file
+    with open(filepath, "w", encoding="utf-8") as file:
+        for i, (question, answer) in enumerate(zip(questions, answers)):
+            file.write(f"Q{i + 1}: {question}\nA{i + 1}: {answer}\n\n")
+
+    return filepath
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -92,21 +113,27 @@ def chat():
 
             # Check if all questions have been answered
             if conversation_state["current_question_index"] >= len(conversation_state["questions"]):
-                # All questions answered, return the summary and switch back to normal chat mode
-                summary = "Here are the questions and answers:\n"
-                for i, (question, answer) in enumerate(zip(conversation_state["questions"], conversation_state["answers"])):
-                    summary += f"{i + 1}. Q: {question}\n   A: {answer}\n"
-                
+                # All questions answered, generate a file with questions and answers
+                qa_filepath = generate_qa_file(conversation_state["questions"], conversation_state["answers"])
+
+                # Generate a download link for the file
+                download_link = f"/download/{os.path.basename(qa_filepath)}"
+
                 # Reset question-answering mode
                 conversation_state["in_question_mode"] = False
                 conversation_state["questions"] = []
                 conversation_state["current_question_index"] = 0
                 conversation_state["answers"] = []
 
-                # Add the summary to the conversation history
+                # Add the summary and download link to the conversation history
+                summary = "Here are the questions and answers:\n"
+                for i, (question, answer) in enumerate(zip(conversation_state["questions"], conversation_state["answers"])):
+                    summary += f"{i + 1}. Q: {question}\n   A: {answer}\n"
+
+                summary += f"\nYou can download the questions and answers here: {download_link}"
                 conversation_state["conversation_history"].append({"role": "assistant", "content": summary})
 
-                return jsonify({"reply": summary})
+                return jsonify({"reply": summary, "download_link": download_link})
 
             # Get the next question
             question = conversation_state["questions"][conversation_state["current_question_index"]]
@@ -178,6 +205,17 @@ def upload():
         return jsonify({"reply": question})
     else:
         return jsonify({"error": "No questions found in the file"}), 400
+
+@app.route("/download/<filename>", methods=["GET"])
+def download_file(filename):
+    """
+    Allows the user to download the generated Q&A file.
+    """
+    filepath = os.path.join("temp", filename)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    else:
+        return jsonify({"error": "File not found"}), 404
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

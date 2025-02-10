@@ -11,6 +11,9 @@
 # production
 /build
 
+src/temp
+src/__pycache__/
+
 # misc
 .DS_Store
 .env.local

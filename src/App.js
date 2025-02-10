@@ -1,4 +1,3 @@
-// App.js
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 
@@ -7,7 +6,8 @@ function App() {
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
   const [uploadStatus, setUploadStatus] = useState("");
-  const [language, setLanguage] = useState("english"); // Default language
+  const [language, setLanguage] = useState("english");
+  const [downloadLink, setDownloadLink] = useState("");
 
   const handleSendMessage = async () => {
     if (message) {
@@ -29,6 +29,10 @@ function App() {
             ...prevMessages,
             { text: data.reply, type: 'llm' },
           ]);
+
+          if (data.download_link) {
+            setDownloadLink(data.download_link);
+          }
         } else {
           console.error('Error from Flask server:', response.statusText);
         }
@@ -59,23 +63,23 @@ function App() {
         method: "POST",
         body: formData,
         headers: {
-          "Language": language, // Pass the selected language to the backend
+          "Language": language,
         },
       });
 
       const data = await response.json();
       if (response.ok) {
-        setUploadStatus(`File uploaded: ${file.name}`);
+        setUploadStatus(`✅ File uploaded: ${file.name}`);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { text: `Uploaded: ${file.name}`, type: "user" },
+          { text: `📂 Uploaded: ${file.name}`, type: "user" },
           { text: data.reply, type: "llm" },
         ]);
       } else {
-        setUploadStatus(`Upload failed: ${data.error}`);
+        setUploadStatus(`❌ Upload failed: ${data.error}`);
       }
     } catch (error) {
-      setUploadStatus("Error uploading file.");
+      setUploadStatus("❌ Error uploading file.");
       console.error('Error uploading file:', error);
     }
   };
@@ -126,8 +130,14 @@ function App() {
           />
         </div>
 
-        {/* Upload Status Feedback */}
         {uploadStatus && <p className="upload-status">{uploadStatus}</p>}
+        {downloadLink && (
+          <p className="download-link">
+            <a href={`http://127.0.0.1:5000${downloadLink}`} download>
+              Download Questions and Answers
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );
