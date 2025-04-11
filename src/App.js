@@ -28,7 +28,7 @@ function App() {
           const data = await response.json();
           setMessages((prevMessages) => [
             ...prevMessages,
-            { text: data.reply, type: 'llm' },
+            { text: data.reply, type: 'llm' }, // Display the LLM response in the chat window
           ]);
 
           if (data.download_link) {

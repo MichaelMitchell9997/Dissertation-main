@@ -4,7 +4,7 @@ LLM_API_URL = "http://127.0.0.1:1234/v1/chat/completions"
 
 def send_to_llm(messages):
     payload = {
-        "model": "hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF/llama-3.2-1b-instruct-q8_0.gguf",
+        "model": "mistral-7b-instruct-v0.3",
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": -1,

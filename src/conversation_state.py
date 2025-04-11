@@ -7,4 +7,5 @@ conversation_state = {
     "awaiting_answer": False,
     "conversation_history": [],
     "language": "english",
+    "validation_attempts": {},
 }
